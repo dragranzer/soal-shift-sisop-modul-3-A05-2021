@@ -86,7 +86,7 @@ int main(int argc, char const *argv[]) {
 
             if (equal(buffer, "Login success")) {
                 while (true) {
-                    printf("1. Logout\n2. Add\n3. Download\n4. Delete\n5. See\n6. Find\n");
+                    printf("1. Logout\n2. Add\n3. Download [File]\n4. Delete [File]\n5. See\n6. Find [File]\n");
                     scanf("%s", command);
 
                     if (equal(command, logout)) {
@@ -131,6 +131,27 @@ int main(int argc, char const *argv[]) {
                         }
                         continue;
                     }
+                    else if (equal(command, "download")) {
+                        send(sock, command, STR_SIZE, 0);
+                        memset(buffer, 0, sizeof(buffer));
+
+                        scanf("%s", command);
+                        send(sock, command, STR_SIZE, 0);
+                        valread = read(sock, buffer, STR_SIZE);
+
+                        printf("message: %s", buffer);
+                        continue;
+                    }
+                    else if (equal(command, "delete")) {
+                        send(sock, command, STR_SIZE, 0);
+                        memset(buffer, 0, sizeof(buffer));
+
+                        scanf("%s", command);
+                        send(sock, command, STR_SIZE, 0);
+                        valread = read(sock, buffer, STR_SIZE);
+
+                        printf("message: %s", buffer);
+                    }
                     else if (equal(command, "see")) {
                         send(sock, command, STR_SIZE, 0);
                         memset(buffer, 0, sizeof(buffer));
@@ -143,6 +164,21 @@ int main(int argc, char const *argv[]) {
                         }
 
                         continue; 
+                    }
+                    else if (equal(command, "find")) {
+                        send(sock, command, STR_SIZE, 0);
+                        memset(buffer, 0, sizeof(buffer));
+
+                        scanf("%s", command);
+                        send(sock, command, STR_SIZE, 0);
+
+                        while (valread = read(sock, buffer, STR_SIZE)) {
+                            if (equal(buffer, "e")) {
+                                break;
+                            }
+                            printf("%s", buffer);
+                        }
+                        continue;
                     }
                 }
                 memset(buffer, 0, sizeof(buffer));
