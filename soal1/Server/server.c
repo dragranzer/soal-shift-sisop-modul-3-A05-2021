@@ -24,13 +24,12 @@ typedef struct akun_t {
     char password[SIZE];
 } Account;
 
-typedef struct file_t
-{
+typedef struct file_t {
     char publisher[SIZE];
     char year[SIZE];
+    char name[SIZE];
     char path[SIZE];
 } Entry;
-
 
 bool equal(char *s1, char *s2) {
     int i = 0, \
@@ -45,33 +44,106 @@ bool equal(char *s1, char *s2) {
 
 void read_tsv_line(Entry *store, char *line) {
     int i = 0;
-    while (line[i] != '\t') {
-        store->publisher[i] = line[i];
+    int j = 0;
+    // read file name
+    while (line[i] != '/') {
         i++;
     }
-    store->publisher[i] = '\0';
     i++;
-    int j = 0;
-
     while (line[i] != '\t') {
+        store->name[j] = line[i];
+        i++;
+        j++;
+    }
+    store->name[j] = '\0';
+    i++;
+    j = 0;
+    strcpy(store->path, "FILES/");
+    strcat(store->path, store->name);
+
+    // read publisher
+    while (line[i] != '\t') {
+        store->publisher[j] = line[i];
+        i++;
+        j++;
+    }
+    store->publisher[j] = '\0';
+    i++;
+    j = 0;
+
+    // read year
+    while (line[i] != '\n') {
         store->year[j] = line[i];
         i++;
         j++;
     }
-
     store->year[j] = '\0';
-    i++;
-    j = 0;
-
-    while (line[i] != '\n') {
-        store->path[j] = line[i];
-        i++;
-        j++;
-    }
-
-    store->path[j] = '\0';
 
     return;
+}
+
+void log_action(char *type, char *fileName, char *user, char *pass) {
+    FILE *log;
+    char action[16];
+
+    if (equal(type, "add")) {
+        strcpy(action, "Tambah");
+    }
+    else if (equal(type, "delete")) {
+        strcpy(action, "Hapus");
+    }
+
+    log = fopen("running.log", "a");
+    fprintf(log, "%s : %s (%s:%s)\n", action, fileName, user, pass);
+    fclose(log);
+
+    return;
+}
+
+void removeLine(int line) {
+    int ctr = 0;
+    char ch;
+
+    char fname[] = "files.tsv";
+    char temp[] = "temp.tsv";
+    FILE *fp1, *fp2;
+
+    // buat copy ke file temp
+    char str[STR_SIZE];
+
+    fp1 = fopen(fname, "r");
+    // can't open file
+    if (!fp1) {
+        printf("file cannot be opened\n");
+        return;
+    }
+
+    fp2 = fopen(temp, "w");
+    if (!fp2) {
+        printf("unable to make temp\n");
+        fclose(fp1);
+        return;
+    }
+
+    while (!feof(fp1)) {
+        strcpy(str, "\0");
+        fgets(str, STR_SIZE, fp1);
+
+        if (!feof(fp1)) {
+            if (ctr != line) {
+                fprintf(fp2, "%s", str);
+            }
+            else {
+                int len = strlen(str);
+                str[len-1] = '\0';
+            }
+            ctr++;
+        }
+    }
+    fclose(fp1);
+    fclose(fp2);
+    remove(fname);
+    rename(temp, fname);
 }
 
 void *client(void *tmp) {
@@ -149,12 +221,13 @@ void *client(void *tmp) {
 
                         valread = read(new_socket, request.publisher, STR_SIZE);
                         valread = read(new_socket, request.year, STR_SIZE);
-                        valread = read(new_socket, request.path, STR_SIZE);
+                        valread = read(new_socket, request.name, STR_SIZE);
 
-                        char dest[STR_SIZE] = "FILES/";
-                        strcat(dest, request.path);
+                        strcpy(request.path, "FILES/");
+                        strcat(request.path, request.name);
 
-                        int des_fd = open(dest, O_WRONLY | O_CREAT | O_EXCL, 0700);
+                        // start adding
+                        int des_fd = open(request.path, O_WRONLY | O_CREAT | O_EXCL, 0700);
                         if (!des_fd) {
                             perror("can't open file");
                             exit(EXIT_FAILURE);
@@ -174,11 +247,82 @@ void *client(void *tmp) {
                                 break;
                             }
                         }
+                        // done adding
 
                         fp = fopen("files.tsv", "a");
-                        fprintf(fp, "%s\t%s\t%s\n", request.publisher, request.year, request.path);
+                        fprintf(fp, "%s\t%s\t%s\n", request.path, request.publisher, request.year);
                         fclose(fp);
+
+                        log_action("add", request.name, akun.name, akun.password);
                         continue;
+                    }
+                    else if (equal("download", buffer)) {
+                        valread = read(new_socket, buffer, STR_SIZE);
+
+                        fp = fopen("files.tsv", "r");
+
+                        char *line = NULL;
+                        ssize_t len = 0;
+                        ssize_t file_read;
+
+                        bool found = false;
+                        char error_message[] = "No such file found.\n";
+                        char good_message[] = "File ready to download.\n";
+
+                        while ((file_read = getline(&line, &len, fp) != -1)) {
+                            Entry temp_entry;
+                            read_tsv_line(&temp_entry, line);
+
+                            if (equal(buffer, temp_entry.name)) {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if (!found) {
+                            send(new_socket, error_message, STR_SIZE, 0);
+                        }
+                        else {
+                            send(new_socket, good_message, STR_SIZE, 0);
+                        }
+                        fclose(fp);
+                    }
+                    else if (equal("delete", buffer)) {
+                        valread = read(new_socket, buffer, STR_SIZE);
+
+                        fp = fopen("files.tsv", "r");
+
+                        char *line = NULL;
+                        ssize_t len = 0;
+                        ssize_t file_read;
+
+                        bool found = false;
+                        char error_message[] = "No such file found.\n";
+                        char good_message[] = "deleted.\n";
+
+                        int index = 0;
+
+                        while ((file_read = getline(&line, &len, fp) != -1)) {
+                            Entry temp_entry;
+                            read_tsv_line(&temp_entry, line);
+
+                            if (equal(buffer, temp_entry.name)) {
+                                found = true;
+                                char old[] = "FILES/old-";
+                                strcat(old, temp_entry.name);
+                                rename(temp_entry.path, old);
+                                log_action("delete", temp_entry.name, akun.name, akun.password);
+                                break;
+                            }
+                            index++;
+                        }
+                        if (!found) {
+                            send(new_socket, error_message, STR_SIZE, 0);
+                        }
+                        else {
+                            removeLine(index);
+                            send(new_socket, good_message, STR_SIZE, 0);
+                        }
+                        fclose(fp);
                     }
                     else if (equal("see", buffer)) {
                         fp = fopen("files.tsv", "r");
@@ -190,6 +334,7 @@ void *client(void *tmp) {
                             Entry temp_entry;
                             read_tsv_line(&temp_entry, line);
 
+                            // read extension
                             char ext[SIZE];
                             int i = 0;
                             while (temp_entry.path[i] != '.') {
@@ -201,15 +346,60 @@ void *client(void *tmp) {
                                 i++;
                                 j++;
                             }
-
                             ext[j] = '\0';
 
                             char message[STR_SIZE];
                             sprintf(message, "Nama : %s\nPublisher : %s\nTahun Publishing : %s\nEkstensi File : %s\nFilepath : %s\n\n", 
-                                    temp_entry.path, temp_entry.publisher, temp_entry.year, ext, temp_entry.path);
+                                    temp_entry.name, temp_entry.publisher, temp_entry.year, ext, temp_entry.path);
                             
-                            // printf("%s", message);
                             send(new_socket, message, STR_SIZE, 0);
+                        }
+                        send(new_socket, "e", sizeof("e"), 0);
+                        fclose(fp);
+                    }
+                    else if (equal("find", buffer)) {
+                        valread = read(new_socket, buffer, STR_SIZE);
+
+                        fp = fopen("files.tsv", "r");
+
+                        char *line = NULL;
+                        ssize_t len = 0;
+                        ssize_t file_read;
+
+                        bool found = false;
+                        char error_message[] = "No such file found.\n";
+
+                        while ((file_read = getline(&line, &len, fp) != -1)) {
+                            Entry temp_entry;
+                            read_tsv_line(&temp_entry, line);
+
+                            char *h;
+                            if ((h = strstr(temp_entry.name, buffer)) != NULL) {
+                                found = true;
+
+                                // read extension
+                                char ext[SIZE];
+                                int i = 0;
+                                while (temp_entry.path[i] != '.') {
+                                    i++;
+                                }
+                                int j = 0;
+                                while (temp_entry.path[i] != '\0') {
+                                    ext[j] = temp_entry.path[i];
+                                    i++;
+                                    j++;
+                                }
+                                ext[j] = '\0';
+
+                                char message[STR_SIZE];
+                                sprintf(message, "Nama : %s\nPublisher : %s\nTahun Publishing : %s\nEkstensi File : %s\nFilepath : %s\n\n", 
+                                        temp_entry.name, temp_entry.publisher, temp_entry.year, ext, temp_entry.path);
+                                
+                                send(new_socket, message, STR_SIZE, 0);
+                            }
+                        }
+                        if (!found) {
+                            send(new_socket, error_message, STR_SIZE, 0);
                         }
                         send(new_socket, "e", sizeof("e"), 0);
                         fclose(fp);
