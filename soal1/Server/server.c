@@ -9,6 +9,7 @@
 #include <ctype.h>
 #include <pthread.h>
 #include <stdbool.h>
+#include <fcntl.h>
 
 #define SIZE 50
 #define STR_SIZE 1024
@@ -40,6 +41,37 @@ bool equal(char *s1, char *s2) {
             return false;
     }
     return true;
+}
+
+void read_tsv_line(Entry *store, char *line) {
+    int i = 0;
+    while (line[i] != '\t') {
+        store->publisher[i] = line[i];
+        i++;
+    }
+    store->publisher[i] = '\0';
+    i++;
+    int j = 0;
+
+    while (line[i] != '\t') {
+        store->year[j] = line[i];
+        i++;
+        j++;
+    }
+
+    store->year[j] = '\0';
+    i++;
+    j = 0;
+
+    while (line[i] != '\n') {
+        store->path[j] = line[i];
+        i++;
+        j++;
+    }
+
+    store->path[j] = '\0';
+
+    return;
 }
 
 void *client(void *tmp) {
@@ -119,6 +151,30 @@ void *client(void *tmp) {
                         valread = read(new_socket, request.year, STR_SIZE);
                         valread = read(new_socket, request.path, STR_SIZE);
 
+                        char dest[STR_SIZE] = "FILES/";
+                        strcat(dest, request.path);
+
+                        int des_fd = open(dest, O_WRONLY | O_CREAT | O_EXCL, 0700);
+                        if (!des_fd) {
+                            perror("can't open file");
+                            exit(EXIT_FAILURE);
+                        }
+
+                        int file_read_len;
+                        char buff[STR_SIZE];
+                        while (true) {
+                            memset(buff, 0x00, STR_SIZE);
+                            file_read_len = read(new_socket, buff, STR_SIZE);
+                            write(des_fd, buff, file_read_len);
+
+                            //temporary fix
+                            break;
+                            if (file_read_len == 0) {
+                                printf("finish\n");
+                                break;
+                            }
+                        }
+
                         fp = fopen("files.tsv", "a");
                         fprintf(fp, "%s\t%s\t%s\n", request.publisher, request.year, request.path);
                         fclose(fp);
@@ -131,13 +187,32 @@ void *client(void *tmp) {
                         ssize_t len = 0;
                         ssize_t file_read;
                         while ((file_read = getline(&line, &len, fp) != -1)) {
-                            printf("line: %s", line);
+                            Entry temp_entry;
+                            read_tsv_line(&temp_entry, line);
+
+                            char ext[SIZE];
+                            int i = 0;
+                            while (temp_entry.path[i] != '.') {
+                                i++;
+                            }
+                            int j = 0;
+                            while (temp_entry.path[i] != '\0') {
+                                ext[j] = temp_entry.path[i];
+                                i++;
+                                j++;
+                            }
+
+                            ext[j] = '\0';
+
+                            char message[STR_SIZE];
+                            sprintf(message, "Nama : %s\nPublisher : %s\nTahun Publishing : %s\nEkstensi File : %s\nFilepath : %s\n\n", 
+                                    temp_entry.path, temp_entry.publisher, temp_entry.year, ext, temp_entry.path);
+                            
+                            // printf("%s", message);
+                            send(new_socket, message, STR_SIZE, 0);
                         }
-                        char *buffer = "see";
-
+                        send(new_socket, "e", sizeof("e"), 0);
                         fclose(fp);
-
-                        send(new_socket, buffer, strlen(buffer), 0);
                     }
                 }
             }
