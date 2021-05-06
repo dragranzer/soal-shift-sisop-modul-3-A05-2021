@@ -112,14 +112,36 @@ int main(int argc, char const *argv[]) {
                         scanf("%c", &temp);
                         scanf("%[^\n]", data);
                         send(sock, data, STR_SIZE, 0);
+
+                        int fd = open(data, O_RDONLY);
+                        if (!fd) {
+                            perror("can't open");
+                            exit(EXIT_FAILURE);
+                        }
+
+                        int read_len;
+                        while (true) {
+                            memset(data, 0x00, sizeof(data));
+                            read_len = read(fd, data, STR_SIZE);
+                            send(sock, data, read_len, 0);
+
+                            if (read_len == 0) {
+                                break;
+                            }
+                        }
                         continue;
                     }
                     else if (equal(command, "see")) {
-                        printf("command: %s\n", command);
                         send(sock, command, STR_SIZE, 0);
                         memset(buffer, 0, sizeof(buffer));
-                        valread = read(sock, buffer, STR_SIZE);
-                        printf("%s\n", buffer);
+
+                        while (valread = read(sock, buffer, STR_SIZE)) {
+                            if (equal(buffer, "e")) {
+                                break;
+                            }
+                            printf("%s", buffer);
+                        }
+
                         continue; 
                     }
                 }
