@@ -54,6 +54,7 @@ void main(){
         printf("\n");
     }
     int matrixb[4][6],num;
+    printf("input matrix a yang merupakan batasan faktorial:\n");
     for(i=0;i<4;i++){
         for(j=0;j<6;j++){
             scanf("%d",&shmptr->batas[i][j]);
