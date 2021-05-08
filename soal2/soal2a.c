@@ -22,6 +22,7 @@ void phrase_2a()
 
 struct shared{
     int data[4][6];
+    int batas[4][6];
 };
 
 void main(){
