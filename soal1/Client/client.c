@@ -40,6 +40,7 @@ int main(int argc, char const *argv[]) {
     char *login = "login";
     char *regist = "register";
     char *logout = "logout";
+    char *quit = "quit";
     char command[STR_SIZE], username[STR_SIZE], password[STR_SIZE];
 
     if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
@@ -63,8 +64,26 @@ int main(int argc, char const *argv[]) {
     char temp;
     char buffer[STR_SIZE] = {0};
 
+    valread = read(sock, buffer, STR_SIZE);
+    printf("%s\n", buffer);
+
+    char hello[STR_SIZE] = "you're connected";
+    while (!equal(hello, buffer)) {
+        printf("You can periodically type: 'Check' to check whether you can use the system\n");
+        scanf("%s", command);
+        send(sock, command, STR_SIZE, 0);
+        valread = read(sock, buffer, STR_SIZE);
+        printf("%s\n", buffer);
+    }
+
+    if (!equal(hello, buffer)) {
+        return 0;
+    }
+
+    memset(buffer, 0, sizeof(buffer));
+
     while (true) {
-        printf("1. Login\n2. Register\n");
+        printf("1. Login\n2. Register\n3. Quit\n");
         scanf("%s", command);
 
         if (equal(command, login)) {
@@ -121,14 +140,17 @@ int main(int argc, char const *argv[]) {
 
                         int read_len;
                         while (true) {
-                            memset(data, 0x00, sizeof(data));
+                            memset(data, 0x00, STR_SIZE);
                             read_len = read(fd, data, STR_SIZE);
-                            send(sock, data, read_len, 0);
 
                             if (read_len == 0) {
                                 break;
                             }
+                            else {
+                                send(sock, data, read_len, 0);                               
+                            }
                         }
+                        close(fd);
                         continue;
                     }
                     else if (equal(command, "download")) {
@@ -138,6 +160,26 @@ int main(int argc, char const *argv[]) {
                         scanf("%s", command);
                         send(sock, command, STR_SIZE, 0);
                         valread = read(sock, buffer, STR_SIZE);
+
+                        char good_message[] = "File ready to download.\n";
+                        if (equal(buffer, good_message)) {
+                            printf("attempting to download: %s\n", command);
+                            int des_fd = open(command, O_WRONLY | O_CREAT | O_EXCL, 0700);
+                            if (!des_fd) {
+                                perror("can't open file");
+                                exit(EXIT_FAILURE);
+                            }
+
+                            int file_read_len;
+                            char buff[STR_SIZE];
+
+                            while (true) {
+                                memset(buff, 0x00, STR_SIZE);
+                                file_read_len = read(sock, buff, STR_SIZE);
+                                write(des_fd, buff, file_read_len);
+                                break;
+                            }
+                        }
 
                         printf("message: %s", buffer);
                         continue;
@@ -180,13 +222,17 @@ int main(int argc, char const *argv[]) {
                         }
                         continue;
                     }
+                    else {
+                        printf("command not recognized\n");
+                        continue;
+                    }
                 }
                 memset(buffer, 0, sizeof(buffer));
             }
 
             memset(buffer, 0, sizeof(buffer));
         }
-        if (equal(command, regist)) {
+        else if (equal(command, regist)) {
             send(sock, regist, strlen(regist), 0);
             printf("Register\n");
             printf("Username: ");
@@ -200,6 +246,15 @@ int main(int argc, char const *argv[]) {
             send(sock, password, STR_SIZE, 0);
 
             printf("register success\n");
+        }
+        else if (equal(command, quit)) {
+            send(sock, quit, strlen(quit), 0);
+            printf("closing\n");
+            return 0;
+        }
+        else {
+            printf("command not recognized\n");
+            continue;
         }
     }
     
