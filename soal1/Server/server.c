@@ -18,6 +18,7 @@
 
 pthread_t tid[3000];
 int find;
+int total = 0;
 
 typedef struct akun_t {
     char name[SIZE];
@@ -146,6 +147,36 @@ void removeLine(int line) {
     rename(temp, fname);
 }
 
+void processPath(char *client, char *fileName) {
+    int i = 0;
+    int flag = 0;
+    while (client[i] != '.') {
+        if (client[i] == '/') {
+            flag = 1;
+        }
+        i++;
+    }
+    if (flag) {
+        while (client[i] != '/') {
+            i--;
+        }
+        i++;
+    }
+    else {
+        i = 0;
+    }
+
+    int j = 0;
+    while (client[i] != '\0') {
+        fileName[j] = client[i];
+        i++;
+        j++;
+    }
+    fileName[j] = '\0';
+
+    return;
+}
+
 void *client(void *tmp) {
     FILE *fp, \
         *fp2, \
@@ -154,13 +185,38 @@ void *client(void *tmp) {
     Account akun, akun2;
 
     char buffer[STR_SIZE] = {0};
-    char hello[STR_SIZE];
+    char hello[STR_SIZE] = "you're connected";
+    char deny[STR_SIZE] = "someone else is using the system, please wait...";
 
     char *regist = "register";
     char *login = "login";
+    char *quit = "quit";
 
     int valread;
     int new_socket = *(int *)tmp;
+
+    if (total == 1) {
+        send(new_socket, hello, STR_SIZE, 0);
+    }
+    else {
+        send(new_socket, deny, STR_SIZE, 0);
+    }
+
+    // if (total > 1) {
+    //     close(new_socket);
+    //     total--;
+    //     printf("total: %d\n", total);
+    //     return 0;
+    // }
+    while (total > 1) {
+        valread = read(new_socket, buffer, STR_SIZE);
+        if (total == 1) {
+            send(new_socket, hello, STR_SIZE, 0);
+        }
+        else {
+            send(new_socket, deny, STR_SIZE, 0);
+        }
+    }
 
     while (true) {
         valread = read(new_socket, buffer, STR_SIZE);
@@ -219,9 +275,13 @@ void *client(void *tmp) {
                     else if (equal("add", buffer)) {
                         Entry request;
 
+                        char clientPath[STR_SIZE];
+
                         valread = read(new_socket, request.publisher, STR_SIZE);
                         valread = read(new_socket, request.year, STR_SIZE);
-                        valread = read(new_socket, request.name, STR_SIZE);
+                        valread = read(new_socket, clientPath, STR_SIZE);
+
+                        processPath(clientPath, request.name);
 
                         strcpy(request.path, "FILES/");
                         strcat(request.path, request.name);
@@ -235,17 +295,12 @@ void *client(void *tmp) {
 
                         int file_read_len;
                         char buff[STR_SIZE];
+
                         while (true) {
                             memset(buff, 0x00, STR_SIZE);
                             file_read_len = read(new_socket, buff, STR_SIZE);
                             write(des_fd, buff, file_read_len);
-
-                            //temporary fix
                             break;
-                            if (file_read_len == 0) {
-                                printf("finish\n");
-                                break;
-                            }
                         }
                         // done adding
 
@@ -268,6 +323,7 @@ void *client(void *tmp) {
                         bool found = false;
                         char error_message[] = "No such file found.\n";
                         char good_message[] = "File ready to download.\n";
+                        char file_loc[STR_SIZE];
 
                         while ((file_read = getline(&line, &len, fp) != -1)) {
                             Entry temp_entry;
@@ -275,6 +331,7 @@ void *client(void *tmp) {
 
                             if (equal(buffer, temp_entry.name)) {
                                 found = true;
+                                strcpy(file_loc, temp_entry.path);
                                 break;
                             }
                         }
@@ -283,6 +340,27 @@ void *client(void *tmp) {
                         }
                         else {
                             send(new_socket, good_message, STR_SIZE, 0);
+                            
+                            printf("attempt to send: %s\n", file_loc);
+                            int fd = open(file_loc, O_RDONLY);
+                            if (!fd) {
+                                perror("can't open");
+                                exit(EXIT_FAILURE);
+                            }
+
+                            int read_len;
+                            while (true) {
+                                memset(file_loc, 0x00, STR_SIZE);
+                                read_len = read(fd, file_loc, STR_SIZE);
+
+                                if (read_len == 0) {
+                                    break;
+                                }
+                                else {
+                                    send(new_socket, file_loc, read_len, 0);                               
+                                }
+                            }
+                            close(fd);
                         }
                         fclose(fp);
                     }
@@ -326,6 +404,11 @@ void *client(void *tmp) {
                     }
                     else if (equal("see", buffer)) {
                         fp = fopen("files.tsv", "r");
+                        if (!fp) {
+                            send(new_socket, "e", sizeof("e"), 0);
+                            memset(buffer, 0, sizeof(buffer));
+                            continue;
+                        }
 
                         char *line = NULL;
                         ssize_t len = 0;
@@ -408,7 +491,7 @@ void *client(void *tmp) {
             }
             fclose(fp3);
         }
-        if (equal(regist, buffer)) {
+        else if (equal(regist, buffer)) {
             fp2 = fopen("akun.txt", "a");
 
             valread = read(new_socket, akun.name, STR_SIZE);
@@ -416,6 +499,11 @@ void *client(void *tmp) {
 
             fprintf(fp2, "%s:%s\n", akun.name, akun.password);
             fclose(fp2);
+        }
+        else if (equal(quit, buffer)) {
+            close(new_socket);
+            total--;
+            break;
         }
     }
 }
@@ -456,7 +544,6 @@ int main(int argc, char const *argv[]) {
     
     mkdir("FILES", 0777);
 
-    int total = 0;
     while(true) {
         if ((new_socket = accept(server_fd, 
             (struct sockaddr *) &address, (socklen_t*) &addr_len)) < 0) {
