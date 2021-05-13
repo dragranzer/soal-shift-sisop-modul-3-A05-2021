@@ -57,7 +57,7 @@ Fungsi `categorizeFile` akan mengembalikan nilai 0 ketika file is not found.
 
 #### B
 
-Program dapat menerima opsi `-d` untuk mengategorikan file-file yang berada di dalam folder. Misalnya, `./soal3.o -d arigatou` berarti program akan memindahkan file-file yang berada di dalam folder `arigatou` ke dalam folder sesuai dengan nama ektensinya.
+Program dapat menerima opsi `-d` untuk mengategorikan file-file yang berada di dalam folder. Misalnya, `./soal3.o -d collection` berarti program akan memindahkan file-file yang berada di dalam folder `collection` ke dalam folder sesuai dengan nama ektensinya.
 
 Kondisi Awal Direktori:
 
