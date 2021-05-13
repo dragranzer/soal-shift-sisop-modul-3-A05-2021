@@ -51,7 +51,9 @@ argv = {"-f", "file1.txt", "file2.jpeg", "file3.zip", NULL}
 
 Pertama-tama, program mengecek apakah `argc > 1` dan apakah `strcmp(argv[0], "-f") == 0`. Jika ya, maka pindahkan file bernama `argv[1]`, `argv[2]`, ..., `argv[argc-1]`.
 
-Proses pemindahannya dilakukan dengan menggunakan Thread. Setiap prosedur pemindahan satu file adalah satu Thread.
+Proses pemindahannya dilakukan dengan menggunakan Thread. Setiap prosedur pemindahan satu file adalah satu Thread. Pada program C yang dibuat, ada fungsi `categorizeFile` yang akan melakukan prosedur pemindahan file ke dalam folder dengan nama ektensinya. Fungsi ini mengembalikan nilai 1 apabila proses pemindahan file berhasil. Jika tidak, fungsi ini akan mengembalikan nilai 0. Jika fungsi ini mengembalikan nilai 1, maka, sesuai dengan permintaan soal, teks "File 1 : Berhasil Dikategorikan (jika berhasil)" akan di-print di layar. Sebaliknya, jika fungsi ini mengembalikan nilai 0, maka teks "File 1: Sad gagal :(" akan di-print di layar.
+
+Fungsi `categorizeFile` akan mengembalikan nilai 0 ketika file is not found.
 
 #### B
 
@@ -84,6 +86,8 @@ Strategi Penyelesaian:
 Pengecekan terhadap argumen `-d` dilakukan sama seperti pada Poin A yaitu dengan mengecek apakah `argc > 1` dan `strcmp(argv[0], "-d") == 0`.
 
 Setelah itu, directory yang dipilih, secara rekursif, di-scan. Setiap file yang ditemukan di dalam directory akan dipindahkan ke dalam folder sesuai dengan nama ektensinya. Setiap prosedur pemindahan satu file adalah satu Thread.
+
+Pada program C ini, fungsi rekursif `recusrivelyCategorizeFile(basePath)` digunakan. Fungsi ini mengembalikan sebuah integer yang menyatakan banyaknya file yang berada di dalam directory basePath yang telah berhasil dipindahkan ke dalam folder sesuai dengan nama ektensinya. Jika fungsi ini mengembalikan nilai 0, maka hal ini berarti tidak ada file yang berhasil dipindahkan ke dalam folder sesuai dengan nama ektensinya. Oleh karena itu, jika fungsi ini mengembalikan nilai 0, maka, sesuai dengan permintaan soal, teks "Yah, gagal disimpan :(" di-print di layar. Sebaliknya, jika fungsi ini mengembalikan nilai setidaknya 1, maka teks "Berhasil Dikategorikan" akan di-print di layar.
 
 #### C
 
