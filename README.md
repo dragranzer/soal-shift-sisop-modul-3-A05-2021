@@ -1,6 +1,213 @@
 # soal-shift-sisop-modul-3-A05-2021
 
 ## Soal 1
+* ### a - Register, Login, >1 Client
+  #### Deskripsi Soal
+  * Server dapat menerima lebih dari 1 koneksi Client sekaligus, namun hanya 1 Client yang dapat menggunakan fungsi-fungsi program. Client ke-2 dan seterusnya harus menunggu sampai Client pertama log out
+  * Client diminta `id` dan `password` saat register -> disimpan di file `akun.txt` sebagai
+    <pre>
+    id:password
+    id2:password2
+    </pre>
+  * Client diminta `id` dan `password` saat login -> dicocokkan dengan `id:password` yang ada di file `akun.txt`
+  
+  #### Solusi Soal
+  * Konesi Client-Server
+    * gunakan template koneksi socket Client dan Server yang ada di modul 3
+    * manfaatkan thread untuk dapat memungkinkan terjadinya >1 koneksi Client ke Server
+      ```c
+      while(true) {
+        if ((new_socket = accept(server_fd, 
+            (struct sockaddr *) &address, (socklen_t*) &addr_len)) < 0) {
+            perror("accept");
+            exit(EXIT_FAILURE);
+        }
+        pthread_create(&(tid[total]), NULL, &client, &new_socket);
+        total++;
+      }
+      ```
+    * simpan jumlah Client yang sedang terkoneksi pada suatu variabel
+    * tentukan apakah Client akan di terima atau di tahan aksesnya ke fungsi program berdasarkan jumlah koneksi
+      ```c
+      if (total == 1) {
+        send(new_socket, hello, STR_SIZE, 0);
+      }
+      else {
+          send(new_socket, deny, STR_SIZE, 0);
+      }
+      ```
+    * di sisi Client, akan diperiksa pesan yang diterima dari Server
+      ```c
+      while (!equal(hello, buffer))
+      ```
+      jika Server tidak mengirim pesan yang menandakan Client dapat menggunakan program, tunggu di `while` loop
+    * kembali di sisi Server, selain meng-handle Client pertama, buat Client tersebut untuk menunggu
+      ```c
+      while (total > 1) {
+        valread = read(new_socket, buffer, STR_SIZE);
+        if (total == 1) {
+            send(new_socket, hello, STR_SIZE, 0);
+        }
+        else {
+            send(new_socket, deny, STR_SIZE, 0);
+        }
+      }
+      ```
+      ![image](https://user-images.githubusercontent.com/43901559/118665759-c7771f80-b81c-11eb-878f-450c16789cba.png)
+      >tampilan di sisi Client
+    * ketika meng-handle Client pertama, siapkan Server untuk menunggu command dari Client. Seperti: login, register, dst.
+      ![image](https://user-images.githubusercontent.com/43901559/118665671-ae6e6e80-b81c-11eb-84aa-8a34d7bd037a.png)
+      >tampilan di sisi Client
+    * ketika Client memutus koneksinya, decrement jumlah koneksi
+      ```c
+      else if (equal(quit, buffer)) {
+        close(new_socket);
+        total--;
+        break;
+      }
+      ```
+    * terima Client yang sedang menunggu apabila menjadi koneksi pertama
+      ![image](https://user-images.githubusercontent.com/43901559/118665952-f7262780-b81c-11eb-8d51-afc44d12f646.png)
+      >tampilan di sisi Client
+  * Fungsi register
+    * Client mengirimkan command `register` ke Server
+    * Server menerima command dan menyiapkan file `akun.txt`
+      ```c
+      fp2 = fopen("akun.txt", "a");
+      ```
+    * Client-Server kirim-terima username dan password yang ingin di-regist
+      
+      ![image](https://user-images.githubusercontent.com/43901559/118666528-761b6000-b81d-11eb-9c2e-ff0565cb28cc.png)
+      >tampilan di Client
+    * `fprintf`-kan user creds yang baru ke file `akun.txt`
+    * `close` file dan akun telah diregister
+  * Fungsi login
+    * Client mengirimkan command `login` ke Server
+    * Server menerima command
+    * Client-Server kirim-terima username dan password
+      
+      ![image](https://user-images.githubusercontent.com/43901559/118667260-0ce81c80-b81e-11eb-9395-485faa5c2610.png)
+      >tampilan di Client
+    * Server membuka file `akun.txt`
+    * Baca file line-by-line dan cari login credentials yang sesuai
+      ```c
+      while ((file_read = getline(&line, &len, fp3) != -1))
+      ```
+    * Kirim pesan ke Client apakah login berhasil atau tidak
+    * Jika login berhasil, siapkan Client-Server untuk command add, download, dst.
+      
+      ![image](https://user-images.githubusercontent.com/43901559/118667562-520c4e80-b81e-11eb-95a5-5c7980442145.png)
+      >tampilan di Client
+  #### Kendala Soal
+  * sulit untuk menerapkan fungsionalitas Client yang terkoneksi >1 dan ada Client yang harus menunggu
+  
+* ### b - files.txt dan folder FILES
+  #### Deskripsi Soal
+  * di Server terdapat `files.tsv` yang menyimpan
+    <pre>
+    path file di server
+    publisher
+    tahunpublikasi
+    </pre>
+    `files.tsv` di-update setiap ada operasi add dan delete files
+  * folder `FILES` yang menyimpan semua file yang dikirimkan oleh Client, otomatis dibuat saat server dijalankan
+  
+  #### Solusi Soal
+  * `files.tsv`
+    * pada operasi penambahan file, tambahkan kode yang akan membuat file `files.tsv`
+    * perubahan pada file tersebut akan dijelaskan lebih lanjut pada bagian soal selanjutnya
+  * folder `FILES`
+    * buat folder `FILES` setelah Server dijalankan
+  
+  #### Kendala Soal
+  * tidak ada
+  
+* ### c - uploading files
+  #### Deskripsi Soal
+  * file yang dikirim ke Server disimpan di folder `FILES`
+    <pre>
+    File1.ekstensi
+    File2.ekstensi
+    </pre>
+  * client mengirimkan command `add` dan Client memasukkan detail file
+    <pre>
+    Publisher:
+    Tahun Publikasi:
+    Filepath:
+    </pre>
+  * `files.tsv` menyimpan data file yang dikirimkan ke Server
+  
+  #### Solusi Soal
+  * command `add` dari Client
+    * Client menerima command dan meneruskannya ke Server
+    * Server bersiap untuk menerima detail dari file
+    * Client mengirimkan detail dari file
+    
+      ![image](https://user-images.githubusercontent.com/43901559/118669933-5df91000-b820-11eb-9ba3-0f5677b741db.png)
+      >tampilan di Client
+  * pengiriman file ke Server
+    * Client membuka file dan mengirimkan file ke Server
+      ```c
+      int fd = open(data, O_RDONLY);
+      if (!fd) {
+        perror("can't open");
+        exit(EXIT_FAILURE);
+      }
+      
+      int read_len;
+      while (true) {
+        memset(data, 0x00, STR_SIZE);
+        read_len = read(fd, data, STR_SIZE);
+
+        if (read_len == 0) {
+          break;
+        }
+        else {
+          send(sock, data, read_len, 0);                               
+        }
+      }
+      close(fd);
+      ```
+    * Server menerima file dan menyimpannya
+      ```c
+      int des_fd = open(request.path, O_WRONLY | O_CREAT | O_EXCL, 0700);
+      if (!des_fd) {
+        perror("can't open file");
+        exit(EXIT_FAILURE);
+      }
+      ```
+      >Server bersiap untuk menyimpan file
+      
+      ![image](https://user-images.githubusercontent.com/43901559/118670586-f1cadc00-b820-11eb-88e5-7b934510e285.png)
+      >struktur folder di Server
+  * penambahan detail file di `files.tsv`
+    * Server menerima detail file terlebih dahulu
+      ```c
+      valread = read(new_socket, request.publisher, STR_SIZE);
+      valread = read(new_socket, request.year, STR_SIZE);
+      valread = read(new_socket, clientPath, STR_SIZE);
+      ```
+    * Server memproses file path dari Client dan memodifikasinya agar dapat menyimpan file di `FILES/nama_file.extension`
+    * Server membuka `files.tsv` dan menambahkan detail file
+      ```c
+      fp = fopen("files.tsv", "a");
+      fprintf(fp, "%s\t%s\t%s\n", request.path, request.publisher, request.year);
+      fclose(fp);
+      ```
+      ![image](https://user-images.githubusercontent.com/43901559/118671543-c3013580-b821-11eb-9743-fc1cb1e21e5e.png)
+      >isi `files.tsv`
+  
+  #### Kendala Soal
+  * kesulitan mengerjakan soal
+
+  #### Referensi
+  * https://stackoverflow.com/questions/40786888/send-file-from-client-to-server-using-socket-in-c-on-linux
+
+* ### d 
+* ### e
+* ### f
+* ### g
+* ### h
 
 ## Soal 2
 
