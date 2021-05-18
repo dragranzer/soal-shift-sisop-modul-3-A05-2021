@@ -22,6 +22,7 @@ void* factorial(void* arg){
     int b = a.num;
     int end = a.limit;
     while(end > 0){
+	if(b==0)break;
         total *= b;
         b--;
         end--;
