@@ -506,25 +506,48 @@ dengan isi matrix `batas` sebagai berikut:
 ```
 Keempat, kami membuat thread sebanyak 24 yang mana tiap thread akan melakukan operasi pada 1 cell pada matrix, disinilah tipe data `one_shared` berperan, dimana `one_shared` akan mengambil 1 cell pada `shared` lalu 1 thread akan mengambil 1 `one_shared` untuk melakukan operasinya
 ```c
-    pthread_t tid[4][6];
-	  for(int i = 0; i < 4;i++){
-        for(int j=0;j<6;j++){
-            struct one_shared *x =  malloc(sizeof(*x));
-            if( x == NULL){
-                printf("TIDAK BISA MEMBUAT RUANG\n");
-                exit(1);
-            }
+	pthread_t tid[4][6];
+    	for(int i = 0; i < 4;i++){
+		for(int j=0;j<6;j++){
+		    struct one_shared *x =  malloc(sizeof(*x));
+		    if( x == NULL){
+			printf("TIDAK BISA MEMBUAT RUANG\n");
+			exit(1);
+		    }
 
-            x->num = shmptr->data[i][j];
-            x->limit = shmptr->batas[i][j];
-            pthread_create(&(tid[i][j]), NULL, &factorial, x);
-            sleep(1);
-            pthread_join(tid[i][j], NULL);
+		    x->num = shmptr->data[i][j];
+		    x->limit = shmptr->batas[i][j];
+		    pthread_create(&(tid[i][j]), NULL, &factorial, x);
+		    sleep(1);
+		    pthread_join(tid[i][j], NULL);
 
-        }	
+		}	
         printf("\n");
-	  }
+     	}
 ```
+Fungsi `factorial` yang kami buat mengambil argumen `one_shared` yang isinya adalah bilangan yang akan dicari faktorialnya dan batasnya:
+```c
+void* factorial(void* arg){
+	struct one_shared a = *((struct one_shared*)arg);
+	free(arg);
+	unsigned long long int total = 1;
+	unsigned long long int b = a.num;
+	unsigned long long int end = a.limit;
+	while(end > 0){
+		if(b==0)break;
+		total *= b;
+		b--;
+		end--;
+	}
+
+	if(row >= 6){
+		row = 0;
+	}
+	printf("%lld ", total);
+	row++;
+}
+```
+
 ## Soal 3
 
 ### Deskripsi Soal
