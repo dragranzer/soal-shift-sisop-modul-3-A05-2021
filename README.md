@@ -550,6 +550,9 @@ void* factorial(void* arg){
 Ketika program run maka akan tampil seperti berikut:
 ![Screenshot from 2021-05-20 15-17-58](https://user-images.githubusercontent.com/71221969/118944355-b0e8d980-b97e-11eb-9440-47d224d086e7.png)
 
+Kesulitan dalam mengerjakan no 2c adalah kurang memahami tentang pipe, jadi hanya mengubah sedikit kode dari referensi
+
+
 ### Deskripsi Soal C
 
 Jalan kan “ps aux | sort -nrk 3,3 | head -5” menggunakan IPC Pipes
@@ -647,6 +650,9 @@ void exec3() {
 }
 ```
 Ketika program di run maka akan tampil seperti berikut:
+![Screenshot from 2021-05-20 18-43-49](https://user-images.githubusercontent.com/71221969/118973002-64f85d80-b99b-11eb-8001-ec530ab9848b.png)
+Referensi:
+https://gist.github.com/mplewis/5279108
 
 ## Soal 3
 
