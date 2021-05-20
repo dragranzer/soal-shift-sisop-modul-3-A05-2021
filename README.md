@@ -488,6 +488,43 @@ Kedua, kami melakukan pengambilan matrix `shared` dari soal A dan menampungnya d
 
     memcpy(result, &shmptr->data, 24 * sizeof(unsigned long long int));
 ```
+Ketiga, kami melakukan input untuk mengisi matrix `batas` dalam tipe data `shared` yang telah kami buat
+```c
+    printf("input matrix a yang merupakan batasan faktorial:\n");
+    for(i=0;i<4;i++){
+        for(j=0;j<6;j++){
+            scanf("%lld",&shmptr->batas[i][j]);
+        }
+    }
+```
+dengan isi matrix `batas` sebagai berikut:
+```
+14 2 3 8 8 10
+7 4 8 5 14 9
+9 2 13 5 11 2
+8 7 10 4 10 8
+```
+Keempat, kami membuat thread sebanyak 24 yang mana tiap thread akan melakukan operasi pada 1 cell pada matrix, disinilah tipe data `one_shared` berperan, dimana `one_shared` akan mengambil 1 cell pada `shared` lalu 1 thread akan mengambil 1 `one_shared` untuk melakukan operasinya
+```c
+    pthread_t tid[4][6];
+	  for(int i = 0; i < 4;i++){
+        for(int j=0;j<6;j++){
+            struct one_shared *x =  malloc(sizeof(*x));
+            if( x == NULL){
+                printf("TIDAK BISA MEMBUAT RUANG\n");
+                exit(1);
+            }
+
+            x->num = shmptr->data[i][j];
+            x->limit = shmptr->batas[i][j];
+            pthread_create(&(tid[i][j]), NULL, &factorial, x);
+            sleep(1);
+            pthread_join(tid[i][j], NULL);
+
+        }	
+        printf("\n");
+	  }
+```
 ## Soal 3
 
 ### Deskripsi Soal
