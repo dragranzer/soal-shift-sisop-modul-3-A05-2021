@@ -550,6 +550,75 @@ void* factorial(void* arg){
 Ketika program run maka akan tampil seperti berikut:
 ![Screenshot from 2021-05-20 15-17-58](https://user-images.githubusercontent.com/71221969/118944355-b0e8d980-b97e-11eb-9440-47d224d086e7.png)
 
+### Deskripsi Soal C
+
+Jalan kan “ps aux | sort -nrk 3,3 | head -5” menggunakan IPC Pipes
+
+### Jawaban Soal C
+
+Pertama, Buat variable `p` untuk fork dan 2 pipe:
+```c
+int p;
+int pipe1[2];
+int pipe2[2];
+```
+Kedua, buat `pipe1` dan jalankan `exec1` yang merupakan `ps aux` menggunakan fork:
+```c
+	pipe(pipe1);
+	p = fork();
+	if (p == 0) {
+		exec1();
+	}
+```
+Isi dari `exec1`:
+```c
+void exec1() {
+  // input from stdin (already done)
+  // output to pipe1
+  dup2(pipe1[1], 1);
+  // close fds
+  close(pipe1[0]);
+  close(pipe1[1]);
+  // exec
+  char *arg[] = {"ps", "aux", NULL};
+  execv("/bin/ps", arg);
+  // exec didn't work, exit
+  perror("bad exec ps");
+  _exit(1);
+}
+```
+Ketiga, buat `pipe2` dan jalankan `exec2` yang merukapakan `sort -nrk 3,3` menggunakan fork:
+```c
+	pipe(pipe2);
+
+	// fork (sort -nrk)
+	p=fork();
+	if (p == 0) {
+	exec2();
+	}
+```
+Isi dari `exec2`:
+```c
+void exec2() {
+  // input from pipe1
+  dup2(pipe1[0], 0);
+  // output to pipe2
+  dup2(pipe2[1], 1);
+  // close fds
+  close(pipe1[0]);
+  close(pipe1[1]);
+  close(pipe2[0]);
+  close(pipe2[1]);
+  // exec
+  char *arg[] = {"sort", "-nrk", "3.3", NULL};
+  execv("/bin/sort", arg);
+  // exec didn't work, exit
+  perror("bad exec grep root");
+  _exit(1);
+}
+```
+
+
 ## Soal 3
 
 ### Deskripsi Soal
