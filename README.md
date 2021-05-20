@@ -564,11 +564,11 @@ int pipe2[2];
 ```
 Kedua, buat `pipe1` dan jalankan `exec1` yang merupakan `ps aux` menggunakan fork:
 ```c
-	pipe(pipe1);
-	p = fork();
-	if (p == 0) {
-		exec1();
-	}
+pipe(pipe1);
+p = fork();
+if (p == 0) {
+	exec1();
+}
 ```
 Isi dari `exec1`:
 ```c
@@ -589,13 +589,13 @@ void exec1() {
 ```
 Ketiga, buat `pipe2` dan jalankan `exec2` yang merukapakan `sort -nrk 3,3` menggunakan fork:
 ```c
-	pipe(pipe2);
+pipe(pipe2);
 
-	// fork (sort -nrk)
-	p=fork();
-	if (p == 0) {
+// fork (sort -nrk)
+p=fork();
+if (p == 0) {
 	exec2();
-	}
+}
 ```
 Isi dari `exec2`:
 ```c
@@ -617,7 +617,36 @@ void exec2() {
   _exit(1);
 }
 ```
-
+Setelah itu jangan lupa untuk menutup fds yang tidak digunakan:
+```c
+  close(pipe1[0]);
+  close(pipe1[1]);
+```
+Keempat, jalankan `exec3` yang merupakan `head -5` menggunakan fork:
+```c
+p=fork();
+if (p == 0) {
+	exec3();
+}
+```
+Isi dari `exec3`:
+```c
+void exec3() {
+  // input from pipe2
+  dup2(pipe2[0], 0);
+  // output to stdout (already done)
+  // close fds
+  close(pipe2[0]);
+  close(pipe2[1]);
+  // exec
+  char *arg[] = {"head","-5", NULL};
+  execv("/bin/head", arg);
+  // exec didn't work, exit
+  perror("bad exec grep sbin");
+  _exit(1);
+}
+```
+Ketika program di run maka akan tampil seperti berikut:
 
 ## Soal 3
 
