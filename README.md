@@ -547,6 +547,8 @@ void* factorial(void* arg){
 	row++;
 }
 ```
+Ketika program run maka akan tampil seperti berikut:
+![Screenshot from 2021-05-20 15-17-58](https://user-images.githubusercontent.com/71221969/118944355-b0e8d980-b97e-11eb-9440-47d224d086e7.png)
 
 ## Soal 3
 
