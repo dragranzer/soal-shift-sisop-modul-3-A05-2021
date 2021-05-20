@@ -467,7 +467,27 @@ Membuat program dengan menggunakan matriks output dari program sebelumnya (progr
 
 ### Jawaban Soal B
 
+Pertama yang kami lakukan adalah membuat 2 tipe data baru yaitu `shared` untuk mendapatkan hasil perkalian matrix dari soal A dan `one_shared` yang nantinya untuk menampung 1 cell dari tipe data `shared`:
+```c
+struct shared{
+    unsigned long long int data[4][6];
+    unsigned long long int batas[4][6];
+};
+struct one_shared{
+    unsigned long long int num;
+    unsigned long long int limit;
+};
+```
+Kedua, kami melakukan pengambilan matrix `shared` dari soal A dan menampungnya dalam `shared` pada soal B lalu membuat matrix degan nama `result` untuk menampung sementara matrix hasil perkalian yang didapat dari tipe data `shared` pada soal B
+```c
+    unsigned long long int result[4][6];
+    key_t key = 1244;
+    unsigned long long int shmid = shmget(key,sizeof(struct shared),0666);
+    struct shared *shmptr;
+    shmptr = (struct shared *) shmat(shmid, NULL, 0);
 
+    memcpy(result, &shmptr->data, 24 * sizeof(unsigned long long int));
+```
 ## Soal 3
 
 ### Deskripsi Soal
