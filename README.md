@@ -431,6 +431,42 @@ void phrase_2a()
     }
 }
 ```
+Algoritma yang kami gunakan adalah algoritma perkalian matrix seperti biasa seperti pada gambar dibawah ini:
+![Perkalian-Dua-Matriks-2](https://user-images.githubusercontent.com/71221969/118937376-ad058900-b977-11eb-9a95-12b0c0c6ed25.png)
+
+Setelah didapatkan matrix `result` maka saatnya menaruh matrix tersebut kedalam tipe data `shared` yang telah kami buat diatas lalu menggunakan shared memory selama 10 detik supaya Soal B dapat mengambil hasil perkalian dari matrix tersebut dalam rentang waktu 10 detik.
+```c
+    key_t key = 1244;
+    int shmid = shmget(key,sizeof(struct shared),IPC_CREAT|0666);
+    struct shared *shmptr;
+    shmptr = (struct shared *) shmat(shmid, NULL, 0);
+
+    for(i=0;i<4;i++){
+        for(j=0;j<6;j++){
+            shmptr->data[i][j] = result[i][j];
+        }
+        //printf("\n");
+    }
+    
+    sleep(10);
+    shmdt((void *) shmptr);
+    shmctl(shmid, IPC_RMID, NULL);
+```
+Matrix yang akan dikalikan adalah matrix A dan matrix B yang telah kami definisikan di awal:
+```c
+unsigned long long int matrix1[4][3] = {{4, 1, 4}, {2, 1, 3}, {4, 2, 2}, {1, 1, 4}};
+unsigned long long int matrix2[3][6] = {{2, 1, 3, 2, 0, 3}, {1, 4, 4, 0, 0, 2}, {1, 1, 0, 1, 2, 1}};
+```
+yang kemudian menghasilkan hasil seperti berikut ketika di run:
+![Screenshot from 2021-05-20 14-43-24](https://user-images.githubusercontent.com/71221969/118939321-c0b1ef00-b979-11eb-9c84-550036b7abb5.png)
+
+
+### Deskripsi Soal B
+
+Membuat program dengan menggunakan matriks output dari program sebelumnya (program soal2a.c) emudian matriks tersebut akan dilakukan perhitungan dengan matrix baru (input user) sebagai berikut contoh perhitungan untuk matriks yang ada. Perhitungannya adalah setiap cel yang berasal dari matriks A menjadi angka untuk faktorial, lalu cel dari matriks B menjadi batas maksimal faktorialnya (dari paling besar ke paling kecil) dan menggunakan thread untuk perhitungan di setiap cel. apabila batas maksimal lebih besar dari angka yang akan difaktorialkan, maka faktorial akan berhenti pada 0!
+
+### Jawaban Soal B
+
 
 ## Soal 3
 
