@@ -404,6 +404,34 @@
 
 ## Soal 2
 
+### Deskripsi Soal A
+
+Membuat program perkalian matrix (4x3 dengan 3x6) dan menampilkan hasilnya.
+
+### Jawaban Soal A
+
+Pertama membuat tipe data baru yang kami beri nama `shared` dimana isinya ada 2 matrix yaitu data dan batas.
+- Data adalah matrix yang akan menyimpan hasil perkalian dari ke 2 matrix yang akan dikalikan
+- batas adalah matrix yang nanti akan berguna pada soal B, namun untuk saat ini masih belum digunakan
+
+Tipe data `shared` inilah yang nantinya akan kami share menggunakan share memory agar nanti bisa dibuka pada soal B
+
+Program utama pada soal A ini adalah program untuk mengalikan 2 matrix (4x3 dengan 3x6):
+```c
+void phrase_2a()
+{
+    unsigned long long int i, j, k;
+    for(i = 0; i < 4; i++){
+        for(j = 0; j < 6; j++){
+            result[i][j] = 0;
+            for(k = 0; k < 3; k++){
+                result[i][j] += matrix1[i][k] * matrix2[k][j];
+            }
+        }
+    }
+}
+```
+
 ## Soal 3
 
 ### Deskripsi Soal
